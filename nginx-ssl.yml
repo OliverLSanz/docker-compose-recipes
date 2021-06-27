@@ -1,0 +1,81 @@
+# This docker image runs a Wordpress instalation.
+#
+# Requisites:
+#     - You need a domain pointed to the server where you are going to run the
+# docker-compose.
+#
+# Configuration:
+#     - Change YOUR_DOMAIN (2 appearances) to your own domain.
+#     - Uncomment the restart: always lines if you want your containers to
+# restart.
+#
+# Usage:
+#     - Do docker-compose up, and voilá! You have your wordpress. Hit your
+# domain in order to start configuration.
+#
+# Note: you can add more wordpress or any other site or web server.
+# You just have to set the environment for the new web server:
+#    - VIRTUAL_HOST=YOUR_DOMAIN
+#    - LETSENCRYPT_HOST=YOUR_DOMAIN
+# The nginx proxy will take care of redirecting the request to the
+# container whose domain matches the requested domain.
+
+version: '3'
+
+
+services:
+  # Proxy that listens for requests and redirects them.
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+#    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs:ro
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    labels:
+      - com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy
+
+  # System that handles SSL certification. Requires public dns registration.
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+#    restart: always
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+    volumes:
+      - certs:/etc/nginx/certs:rw
+      - vhostd:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  wordpress:
+    image: wordpress
+#    restart: always
+    links:
+     - mariadb:mysql
+    environment:
+     - WORDPRESS_DB_PASSWORD=password
+     - VIRTUAL_HOST=YOUR_DOMAIN
+     - LETSENCRYPT_HOST=YOUR_DOMAIN
+     - LETSENCRYPT_EMAIL=oliverlsanz@gmail.com
+    expose:
+     - "80"
+    volumes:
+     - ./html:/var/www/html
+  
+  mariadb:
+    image: mariadb
+#    restart: always
+    environment:
+     - MYSQL_ROOT_PASSWORD=password
+     - MYSQL_DATABASE=wordpress
+    volumes:
+     - ./database:/var/lib/mysql
+
+volumes: 
+  certs:
+  html:
+  vhostd:
