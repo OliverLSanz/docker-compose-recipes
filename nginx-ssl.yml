@@ -42,6 +42,8 @@ services:
   # System that handles SSL certification. Requires public dns registration.
   letsencrypt:
     image: jrcs/letsencrypt-nginx-proxy-companion
+    depends_on:
+      - "nginx-proxy"
 #    restart: always
     environment:
       - NGINX_PROXY_CONTAINER=nginx-proxy
@@ -51,30 +53,25 @@ services:
       - html:/usr/share/nginx/html
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
-  wordpress:
-    image: wordpress
+  www:
+    image: stackatoapps/phpinfo
 #    restart: always
-    links:
-     - mariadb:mysql
     environment:
-     - WORDPRESS_DB_PASSWORD=password
      - VIRTUAL_HOST=YOUR_DOMAIN
      - LETSENCRYPT_HOST=YOUR_DOMAIN
-     - LETSENCRYPT_EMAIL=oliverlsanz@gmail.com
+     - LETSENCRYPT_EMAIL=YOUR_EMAIL
     expose:
      - "80"
-    volumes:
-     - ./html:/var/www/html
-  
-  mariadb:
-    image: mariadb
-#    restart: always
-    environment:
-     - MYSQL_ROOT_PASSWORD=password
-     - MYSQL_DATABASE=wordpress
-    volumes:
-     - ./database:/var/lib/mysql
 
+  wwww:
+    image: httpd:2.4
+    expose:
+     - "80"
+    environment:
+     - VIRTUAL_HOST=YOUR_OTHER_DOMAIN
+     - LETSENCRYPT_HOST=YOUR_OTHER_DOMAIN
+     - LETSENCRYPT_EMAIL=YOUR_EMAIL
+  
 volumes: 
   certs:
   html:
